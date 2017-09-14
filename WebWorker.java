@@ -40,6 +40,7 @@ public class WebWorker implements Runnable {
 
     //Global vars
     private Socket socket;
+    String format;
     private String myPath = " ";
 
     //Constructor
@@ -66,8 +67,41 @@ public class WebWorker implements Runnable {
             //Path includes addition /, remove this dash
             path = path.substring(1);
 
-            writeHTTPHeader(os,"text/html",path);
-            writeContent(os,path);
+//            writeHTTPHeader(os,"text/html",path);
+//            writeContent(os,path);
+//            os.flush();
+//            socket.close();
+            
+            
+            //We gotta format the proper picture
+            //Lets use if else statements!
+            if(path.endsWith(".jpg"))
+                
+                format = "image/jpg";
+            
+            else if(path.endsWith(".jpeg"))
+                
+                format = "image/jpeg";
+            
+            else if (path.endsWith(".gif"))
+                
+                format = "image/gif";
+            
+            else if(path.endsWith(".png"))
+                
+                format = "image/png";
+            
+            else if(path.endsWith(".ico"))
+                
+                format = "image/x-icon";
+            
+            else
+                
+                format = "text/html";
+            
+            //We now have the right value in format
+            writeHTTPHeader(os,format, path);
+            writeContent(os, path);
             os.flush();
             socket.close();
         }
@@ -185,36 +219,49 @@ public class WebWorker implements Runnable {
         if(noice.exists() && !noice.isDirectory()){
             FileInputStream myStream = new FileInputStream(path);
             BufferedReader r = new BufferedReader(new InputStreamReader(myStream));
-            String myFile;
             
-            //Reading file
-            while ((myFile = r.readLine()) != null){
+            
+            if(format.startsWith("image/"))
                 
-                //Check for <cs371date> tag and replace
-                if(myFile.toLowerCase().contains(("<cs371date>").toLowerCase()) == true){
+                Files.copy(noice.toPath(), os);
+            
+            
+            
+            else{
+                
+                String myFile;
+
+                //Reading file
+                while ((myFile = r.readLine()) != null){
                     
-                    Date myDate = new Date();
-                    String s = myFile.replaceAll("<cs371date>", myDate.toString());
+                    //Check for <cs371date> tag and replace
+                    if(myFile.toLowerCase().contains(("<cs371date>").toLowerCase()) == true){
+                        
+                        Date myDate = new Date();
+                        String s = myFile.replaceAll("<cs371date>", myDate.toString());
+                        
+                        os.write(s.getBytes());
+                        os.write("<r>".getBytes());
+                    }
                     
-                    os.write(s.getBytes());
-                    os.write("<r>".getBytes());
+                    
+                    //Check for <cs371server> tag & replace
+                    if(myFile.toLowerCase().contains(("<cs371server>").toLowerCase()) == true){
+                        
+                        String serverID = "Kousei Richeson's Server";
+                        String s = myFile.replaceAll("<cs371server>", serverID);
+                        os.write(s.getBytes());
+                        os.write("<r>".getBytes());
+                    }
+                    
+                    
+                    os.write(myFile.getBytes());
                 }
                 
-                
-                //Check for <cs371server> tag & replace
-                if(myFile.toLowerCase().contains(("<cs371server>").toLowerCase()) == true){
-                    
-                    String serverID = "Kousei Richeson's Server";
-                    String s = myFile.replaceAll("<cs371server>", serverID);
-                    os.write(s.getBytes());
-                    os.write("<r>".getBytes());
-                }
-                
-                
-                os.write(myFile.getBytes());
+                r.close();
             }
-            r.close();
         }
+            
         
         
         else{
